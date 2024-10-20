@@ -1,0 +1,450 @@
+\documentclass[UTF8]{ctexart}
+\usepackage{geometry, CJKutf8}
+\geometry{margin=1.5cm, vmargin={0pt,1cm}}
+\setlength{\topmargin}{-1cm}
+\setlength{\paperheight}{29.7cm}
+\setlength{\textheight}{25.3cm}
+
+% useful packages.
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{layout}
+\usepackage{listings}
+\usepackage{float, caption}
+
+\lstset{
+    basicstyle=\ttfamily, basewidth=0.5em
+}
+
+% some common command
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\avg}[1]{\left\langle #1 \right\rangle}
+\newcommand{\difFrac}[2]{\frac{\dif #1}{\dif #2}}
+\newcommand{\pdfFrac}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\OFL}{\mathrm{OFL}}
+\newcommand{\UFL}{\mathrm{UFL}}
+\newcommand{\fl}{\mathrm{fl}}
+\newcommand{\op}{\odot}
+\newcommand{\Eabs}{E_{\mathrm{abs}}}
+\newcommand{\Erel}{E_{\mathrm{rel}}}
+
+\begin{document}
+
+\pagestyle{fancy}
+\fancyhead{}
+\lhead{张子乐, 3230104237}
+\chead{数据结构与算法第四次作业}
+\rhead{Oct.19th, 2024}
+
+\section{测试程序的设计思路}
+
+
+我首先声明了一个printlist()函数，用于打印list中的所有元素，如果list为空则输出empty list
+
+代码如下：
+
+template<typename T>
+
+
+void printlist(const List<T>\& list)//printlist函数方便后续测试
+
+
+\{   
+
+    if(list.empty())
+    
+        std::cout << "empty list" << std::endl;
+        
+    else
+    
+    \{
+    
+    for(const auto\& i:list)
+   
+    \{
+
+        std::cout << i << " ";
+
+    \}
+
+    std::cout << std::endl;
+
+    \}
+
+\}
+
+1.为了测试默认构造函数 List()，我创建了list1并打印
+
+代码如下：
+
+List<int> list1;//测试默认构造函数 List()
+
+    std::cout << "this is list1:";
+
+    printlist(list1);
+
+测试结果为：this is list1:empty list
+
+2.为了测试初始化列表构造函数List(std::initializer\_list<Object> il)，我用list2=\{1,3,5,7,9\}的方式创建了list2并打印
+
+代码如下：
+
+ List<int> list2=\{1,3,5,7,9\};//测试初始化列表构造函数List(std::initializer\_list<Object> il)
+
+    std::cout << "this is list2:";
+
+    printlist(list2);
+
+测试结果为：this is list2:1 3 5 7 9
+
+3.为了测试拷贝构造函数List(const List \&rhs)，我用list3(list2)的方式创建list3并打印
+
+代码如下：
+
+ List<int> list3(list2);//测试拷贝构造函数List(const List \&rhs)
+   
+    std::cout << "this is list3:";
+
+    printlist(list3);
+
+测试结果为：this is list3:1 3 5 7 9
+
+4.为了测试赋值运算符List \&operator=(List copy)，我创建list4并使list4=list2，随后打印list4
+
+代码如下：
+
+List<int> list4;//测试赋值运算符List \&operator=(List copy)
+
+    list4=list2;
+
+    std::cout << "this is list4:";
+
+    printlist(list4);
+
+测试结果为：this is list4:1 3 5 7 9
+
+5.为了测试移动构造函数List(List \&\&rhs)，我用list5(std::move(list3))的方式创建list5并打印list5和list3
+
+代码如下：
+
+List<int> list5(std::move(list3));//测试移动构造函数List(List \&\&rhs)
+
+    std::cout << "this is list5:";
+
+    printlist(list5);
+
+    printlist(list3);//list3应为空
+
+测试结果为：this is list5:1 3 5 7 9
+
+empty list
+
+6.为了测试size()函数，我输出了list5.size()的结果，list5有5个元素
+
+代码如下：
+
+ std::cout << "size of list5:" << list5.size() << std::endl;//测试size()函数
+
+测试结果为：size of list5:5
+
+7.我用空链表list3和有5个元素的链表list5测试empty()函数，如果list3为空，则输出list3 is empty，如果list5不为空，则输出list5 is not empty
+
+代码如下：
+
+
+if(list3.empty())//测试empty()函数
+
+        std::cout << "list3 is empty" << std::endl;
+
+    if(!(list5.empty()))
+
+        std::cout << "list5 is not empty" << std::endl;
+
+测试结果为：list3 is empty
+
+list5 is not empty
+
+8.为了测试front()和back（）函数，我用临时变量front存储list5.front()，用临时变量back存储list5.back（)，list5的第一个数据为1，最后一个数据为9
+
+代码如下：
+
+
+int front=list5.front();
+    
+int back=list5.back();
+    
+std::cout << "this is front:" << front << std::endl;
+    
+std::cout << "this is back:" << back << std::endl;
+
+测试结果为:this is front:1
+
+this is back:9
+
+9.为了测试在头部插入函数push\_front(左值版本和右值版本),用list5.push\_front(std::move(a))测试右值引用版本,用list5.push\_front(10)测试左值引用版本,相当于在链表头部插入2个10
+    
+代码如下:
+
+    int a=10;//测试在头部插入函数push\_front(左值版本和右值版本)
+    
+    list5.push\_front(std::move(a));
+    
+    list5.push\_front(10);
+    
+    std::cout << "this is list5 after push\_front:";
+    
+    printlist(list5);
+
+    测试结果为:
+   
+    this is list5 after push\_front:10 10 1 3 5 7 9
+
+10.为了测试在尾部插入函数push\_back(左值版本和右值版本),用list5.push\_back(std::move(a))测试右值引用版本,用list5.push\_back(10)测试左值引用版本,相当于在链表尾部插入2个10
+    
+    代码如下:
+
+    list5.push\_back(std::move(a));//测试在尾部插入函数push\_back(左值版本和右值版本)
+    
+    list5.push\_back(10);
+    
+    std::cout << "this is list5 after push\_back:";
+    
+    
+    printlist(list5);
+
+    测试结果为:this is list5 after push\_back:10 10 1 3 5 7 9 10 10
+
+11.测试pop\_front(),删除list5头部第一个数据10
+
+代码如下:
+
+    list5.pop\_front();//测试pop\_front()
+    
+    std::cout << "this is list5 after pop\_front:";
+    
+    printlist(list5);
+
+测试结果:this is list5 after pop\_front:10 1 3 5 7 9 10 10
+
+12.测试pop\_back(),删除list5尾部第一个数据10
+
+代码如下:
+
+list5.pop\_back();//测试pop\_back()
+
+std::cout << "this is list5 after pop\_back:";
+
+printlist(list5);
+
+测试结果:this is list5 after pop\_back:10 1 3 5 7 9 10
+
+13.为了测试insert()函数的左值引用版本,在list5头部第二个位置插入8
+
+代码如下:
+
+    list5.insert(++list5.begin(),8);//测试insert()函数(左值版本)
+    
+    std::cout << "this is list5 after insert8:";
+    
+    printlist(list5);
+
+测试结果:this is list5 after insert8:10 8 1 3 5 7 9 10
+
+14.为了测试insert()函数的右值引用版本,在list5头部第二个位置再插入1个6
+
+代码如下:
+
+    int b=6;
+    
+    list5.insert(++list5.begin(),std::move(b));
+    
+    std::cout << "this is list5 after insert6:";
+    
+    printlist(list5);   
+
+测试结果:this is list5 after insert6:10 6 8 1 3 5 7 9 10
+
+15.测试erase(iterator itr)删除指定节点,删除list5头部第二个数据6
+
+代码如下:
+
+    
+    list5.erase(++list5.begin());//测试erase(iterator itr)删除指定节点
+    
+    std::cout << "this is list5 after erase:";
+    
+    printlist(list5);
+
+测试结果:this is list5 after erase:10 8 1 3 5 7 9 10
+
+16.测试erase(iterator from, iterator to)删除范围节点,将list5从头部第二个节点到倒数第二个节点的数据全部删除
+    
+代码如下:
+    
+    list5.erase(++list5.begin(),--list5.end());//测试erase(iterator from, iterator to)删除范围节点
+    
+    std::cout << "this is list5 after erase:";
+    
+    printlist(list5);
+
+测试结果:this is list5 after erase:10 10
+
+17.为了测试是否深度复制,更改list2的数据将头部第一个数据删除,观察list4是否因此改变.如list4不变,则说明是深度复制
+
+    代码如下:
+    
+    list2.pop\_front();
+    
+    std::cout << "this is list2 after pop\_front:" ;
+    
+    printlist(list2);
+    
+    std::cout << "this is list4 after pop\_front list2" ;
+    
+    printlist(list4);
+
+测试结果:this is list2 after pop\_front:3 5 7 9
+
+this is list4 after pop\_front list2:1 3 5 7 9
+
+18.为了测试连续复制,新建一个空链表list6,用list6=list3=list2将list2的值(3,5,7,9)传给list3和list6
+
+代码如下:
+
+    List<int> list6;
+    
+    list6=list3=list2;
+    
+    std::cout << "this is list3:" ;
+    
+    printlist(list3);
+    
+    std::cout << "this is list6:" ;
+    
+    printlist(list6);
+
+测试结果:this is list3:3 5 7 9
+
+this is list6:3 5 7 9
+
+19.为了测试clear()函数,将list4清空
+
+代码如下:
+
+list4.clear();//测试clear()函数
+
+std::cout << "this is list4:";
+
+printlist(list4);
+
+测试结果:this is list4:empty list
+
+\section{测试的结果}
+
+编译运行List.cpp后终端输出为:
+
+this is list1:empty list
+
+this is list2:1 3 5 7 9
+
+this is list3:1 3 5 7 9
+
+this is list4:1 3 5 7 9
+
+this is list5:1 3 5 7 9
+
+empty list
+
+size of list5:5
+
+list3 is empty
+
+list5 is not empty
+
+this is front:1
+
+this is back:9
+
+this is list5 after push\_front:10 10 1 3 5 7 9
+
+this is list5 after push\_back:10 10 1 3 5 7 9 10 10
+
+this is list5 after pop\_front:10 1 3 5 7 9 10 10
+
+this is list5 after pop\_back:10 1 3 5 7 9 10
+
+this is list5 after insert8:10 8 1 3 5 7 9 10
+
+this is list5 after insert6:10 6 8 1 3 5 7 9 10
+
+this is list5 after erase:10 8 1 3 5 7 9 10
+
+this is list5 after erase:10 10
+
+this is list2 after pop\_front:3 5 7 9
+
+this is list4 after pop\_front list21 3 5 7 9
+
+this is list3:3 5 7 9
+
+this is list6:3 5 7 9
+
+this is list4:empty list
+
+测试结果一切正常。
+
+我用 valgrind 进行测试，发现没有发生内存泄露。
+
+\section{（可选）bug报告}
+
+我发现了两个bug，触发条件如下：
+
+
+\begin{enumerate}
+  \item bug1：
+  
+  \item 首先,list3.empty()能通过编译且返回值为true
+    
+  \item 然后我试图对空链表list3进行insert,push\_front,push\_back,pop\_front,pop\_back等操作，
+    
+  \item 此时发现编译报错Segmentationfault
+    
+  \item 据我分析，它出现的原因是：list3在list5(std::move(list3))中被析构，size为0，head和
+    
+    tail都为nullptr，即list3已经不存在了，因此无法对其进行插入和删除等操作；而empty()
+    
+    函数的判断标准为size是否为0，因此认为list3存在且为空链表；一个正常初始化的空链表的
+    
+    head指向tail，tail指向head，list3不符合这个标准，因此调用empty()函数时应返回异常，
+    
+    而不是返回true。
+\end{enumerate}   
+
+\begin{enumerate}
+
+  \item bug2：
+  
+  \item 首先,lis1是一个空链表
+   
+  \item 然后我对list1做pop\_front()和pop\_back()操作
+  
+  \item 此时发现编译报错Segmentation fault
+   
+  \item 据我分析，它出现的原因是：list1是一个空链表，对其做删除头部和尾部第一个数据的操作是没有意义的；当对空链表做这些操作时应返回异常。
+   
+\end{enumerate}
+
+
+
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
