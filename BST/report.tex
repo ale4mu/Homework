@@ -1,0 +1,248 @@
+\documentclass[UTF8]{ctexart}
+\usepackage{geometry, CJKutf8}
+\geometry{margin=1.5cm, vmargin={0pt,1cm}}
+\setlength{\topmargin}{-1cm}
+\setlength{\paperheight}{29.7cm}
+\setlength{\textheight}{25.3cm}
+\usepackage[dvipsnames]{xcolor}
+% useful packages.
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{layout}
+\usepackage{listings}
+\usepackage{float, caption}
+
+\lstset{
+    basicstyle=\ttfamily, basewidth=0.5em
+}
+
+% some common command
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\avg}[1]{\left\langle #1 \right\rangle}
+\newcommand{\difFrac}[2]{\frac{\dif #1}{\dif #2}}
+\newcommand{\pdfFrac}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\OFL}{\mathrm{OFL}}
+\newcommand{\UFL}{\mathrm{UFL}}
+\newcommand{\fl}{\mathrm{fl}}
+\newcommand{\op}{\odot}
+\newcommand{\Eabs}{E_{\mathrm{abs}}}
+\newcommand{\Erel}{E_{\mathrm{rel}}}
+
+\begin{document}
+
+\pagestyle{fancy}
+\fancyhead{}
+\lhead{张子乐, 3230104237}
+\chead{数据结构与算法第五次作业}
+\rhead{Nov.1st, 2024}
+
+\section{remove函数的设计思路}
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+我首先声明了一个detachMin函数，用于寻找子树的最小节点，并在原子树中删除，最后返回最小节点。
+最小节点只可能存在right child，如果该节点有right child，则该节点的parent->left=该节点的right child。
+该函数主要分为两种情况讨论：传入的节点t有无left child。
+
+如果传入节点没有left child，则该节点即为最小节点。
+用该节点的right child代替该节点的位置，清空该节点并返回该节点。
+
+如果传入节点有left child，则通过while循环找到最小节点的parent节点。
+while(t->left->left != nullptr) 
+    t=t->left;
+将该节点的right child作为该节点parent的left child，清空该节点并返回该节点。
+
+detachMin函数代码如下：
+BinaryNode *detachMin(BinaryNode *&t)
+    {
+        if(t==nullptr)          //传入的节点为空，则返回空
+            return nullptr;
+        if(t->left == nullptr) //在t没有left child的情况下，t就是最小节点
+        {
+            BinaryNode *minNode = t;
+            t=t->right;  //若t不存在right child则为nullptr。若t存在right child，则将right child放到原先t的位置。
+            minNode->right = nullptr;   //清空minNode的子节点
+            return minNode;
+        }
+        else //t存在left child
+        {
+            while(t->left->left != nullptr) //找到最小节点的parent
+            {
+                t=t->left;
+            }
+            BinaryNode *minNode = t->left;
+            t->left = minNode->right; //parent->left=最小节点->right，最小节点只可能存在right child，若不存在则都为nullptr
+            minNode->left=nullptr;  //清空minNode的子节点
+            minNode->right=nullptr;
+            return minNode;
+        }
+    }
+
+
+    借助detachMin函数我对remove函数进行了修改。
+    
+    首先通过不断将待删除节点的值x与t节点的值进行比较，递归寻找值为x的待删除节点。
+    在找到待删除节点后，分为两种情况：待删除节点有2个child，和待删除节点有1个或0个child。
+    
+    如果待删除节点有2个child，通过detachMin函数找到待删除节点右子树的最小节点。
+    通过minNode->left = t->left和minNode->right = t->right将它与待删除节点的2个child连上。
+    最后删除待删除节点。
+    
+    如果待删除节点有1个或0个child：
+    通过t = (t->left != nullptr) ? t->left : t->right将它与待删除节点的child连上。
+    最后删除待删除节点。
+
+    此外，我在public的remove函数中加入了判断为空的操作，若树为空仍试图删除树中的元素则会抛出异常。
+    if( isEmpty( ) )
+        throw UnderflowException{ };
+      
+    
+    remove函数代码如下：
+    void remove(const Comparable &x, BinaryNode * &t) 
+    {
+        if (t == nullptr)  //递归结束，没有找到要删除的值，什么都不做
+        {
+            return;  
+        }
+        if (x < t->element)  //比t节点元素小，在t的左子树中递归寻找x
+        {
+            remove(x, t->left);
+        } 
+        else if (x > t->element)  //比t节点元素大，在t的右子树中递归寻找x
+        {
+            remove(x, t->right);
+        } 
+        //以下操作在找到x之后实现
+        else if (t->left != nullptr && t->right != nullptr) //待删除节点有两个子节点
+        {  
+            BinaryNode *minNode = detachMin(t->right); //找到待删除节点右子树的最小元素节点
+            minNode->left = t->left;  
+            minNode->right = t->right; //用右子树的最小元素节点代替待删除节点
+            delete t; 
+            t = minNode;
+        } 
+        else //待删除节点有一个或没有子节点
+        {
+            BinaryNode *oldNode = t;
+            t = (t->left != nullptr) ? t->left : t->right; 
+            delete oldNode;//用待删除节点的左节点或右节点代替待删除节点，若没有子节点则将待删除节点置为空，删除待删除节点
+        }
+    }
+\end{lstlisting}
+
+\section{测试的结果}
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+1.按照10，5，15，3，7，12，18，2，4的顺序在树bst中插入元素。
+输出结果为：
+Initial Tree:
+2
+3
+4
+5
+7
+10
+12
+15
+18
+
+2.bst.remove(33)测试待删除节点不存在的情况
+输出结果为：
+Tree after removing 33:
+2
+3
+4
+5
+7
+10
+12
+15
+18
+待删除节点不存在，不作任何操作，测试正常。
+
+3.bst.remove(7)测试待删除节点无子节点的情况。
+输出结果为：
+Tree after removing 7:
+2
+3
+4
+5
+10
+12
+15
+18
+元素7被删除，测试正常。
+
+4.bst.remove(3)测试有两个子节点的情况。
+输出结果为：
+Tree after removing 3:
+2
+4
+5
+10
+12
+15
+18
+元素3被删除，测试正常。
+
+5.bst.remove(2)测试有一个子节点的情况。
+输出结果为：
+Tree after removing 2:
+4
+5
+10
+12
+15
+18
+元素2被删除，测试正常。
+
+6.bst.remove(10)测试删除root节点的情况。
+输出结果为：
+Tree after removing 10:
+4
+5
+12
+15
+18
+元素10被删除，测试正常。
+
+7.构建新树bst1，其中只有一个节点。
+BinarySearchTree<int> bst1;
+bst1.insert(5);
+std::cout << " tree bst1:" << std::endl;
+bst1.printTree();
+输出结果为：
+tree bst1:
+5
+
+8.bst1.remove(5)测试树只有一个root节点且将其删除的情况
+输出结果为：
+bst1 after removing 5:
+Empty tree
+该节点被删除后树为空，测试正常。
+
+9.bst1.remove(0)测试在空树中试图删除元素的情况
+输出结果为：terminate called after throwing an instance of 'UnderflowException'
+在空树中删除元素，抛出异常。
+
+综上，remove函数各项功能测试正常。
+\end{lstlisting}
+\end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
