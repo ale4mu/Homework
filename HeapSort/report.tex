@@ -1,0 +1,309 @@
+\documentclass[UTF8]{ctexart}
+\usepackage{geometry, CJKutf8}
+\geometry{margin=1.5cm, vmargin={0pt,1cm}}
+\setlength{\topmargin}{-1cm}
+\setlength{\paperheight}{29.7cm}
+\setlength{\textheight}{25.3cm}
+\setlength{\parindent}{0pt}
+% \documentclass{article}
+\usepackage{array} % 用于额外的列定义功能
+\usepackage[dvipsnames]{xcolor}
+% useful packages.
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{layout}
+\usepackage{listings}
+\usepackage{float, caption}
+
+\lstset{
+    basicstyle=\ttfamily, basewidth=0.5em
+}
+
+% some common command
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\avg}[1]{\left\langle #1 \right\rangle}
+\newcommand{\difFrac}[2]{\frac{\dif #1}{\dif #2}}
+\newcommand{\pdfFrac}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\OFL}{\mathrm{OFL}}
+\newcommand{\UFL}{\mathrm{UFL}}
+\newcommand{\fl}{\mathrm{fl}}
+\newcommand{\op}{\odot}
+\newcommand{\Eabs}{E_{\mathrm{abs}}}
+\newcommand{\Erel}{E_{\mathrm{rel}}}
+
+\begin{document}
+
+\pagestyle{fancy}
+\fancyhead{}
+\lhead{张子乐, 3230104237}
+\chead{数据结构与算法第七次作业}
+\rhead{Dec.1st, 2024}
+
+\section{HeapSort的设计思路}
+HeapSort主要思路为：
+
+1.BuildHeap函数建立最大堆
+
+2.不断做DeleteMax将当前最大元素交换到序列未排序部分的末尾
+
+3.用Heapify函数维持最大堆的性质：parent >= child
+
+代码如下：
+
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+template <typename Comparable>
+void HeapSort(vector<Comparable> &arr)
+{
+    BuildHeap(arr);//构建最大堆
+    for(int i = arr.size()-1; i > 0; --i)//不断将当前最大元素交换到数组末尾
+        DeleteMax(arr, i);
+}
+\end{lstlisting}
+Heapify是堆排序的关键函数：它判断parent与child的大小，将之中的最大元交换到parent的位置。
+
+如果发生交换，它还将在交换后到下一级继续进行判断。
+
+这里没有使用递归，是担心序列元素过多后可能会出现栈溢出的问题。
+
+代码如下：
+
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+template <typename Comparable>
+void Heapify( vector<Comparable> &arr,int i,int n )//使parent>child
+{
+    int parent = i;
+    while(true)//递归可能导致栈溢出
+    {   
+        int theMax=parent; //默认parent是最大元
+        int leftchild = 2*theMax + 1;
+        int rightchild = 2*theMax + 2;
+        //比较parent与child的大小
+        if( leftchild < n && arr[ theMax ] < arr[ leftchild ] )
+            theMax = leftchild;
+        if( rightchild < n && arr[ theMax ] < arr[ rightchild ] )
+            theMax = rightchild;
+        if(theMax != parent)//parent不是最大的
+        {
+            swap( arr[ parent ], arr[ theMax ]);//交换最大元到parent的位置
+            parent=theMax;//交换后到下一级维护堆
+        }
+        else
+            break;
+    }
+}
+\end{lstlisting}
+建立最大堆由BuildHeap函数实现：从最后一个非叶子节点开始不断调用Heapify函数，向上建堆
+
+代码如下：
+
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+template <typename Comparable>
+void BuildHeap(vector<Comparable> &arr)//建立最大堆
+{
+    int size=arr.size();
+    for(int i = size/2-1;i >= 0; --i)//从最后一个非叶子节点开始，向上建堆
+    {
+        Heapify(arr, i, size);
+    }
+}
+\end{lstlisting}
+DeleteMax函数首先将根节点，即最大元，与序列未排序部分的最后一个元素交换。
+
+然后调用Heapify函数重建堆，维护最大堆的性质。
+
+代码如下：
+
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+template <typename Comparable>
+void DeleteMax(vector<Comparable> &arr, int i)
+{
+    swap(arr[0], arr[i]);//将根节点即最大元素与数组末尾的元素交换
+    Heapify(arr, 0, i);//重建堆维持最大堆的性质
+}
+\end{lstlisting}
+
+
+\section{测试流程}
+check函数用于检查排序的正确性，代码如下：
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+template <typename Comparable>
+bool check(vector<Comparable> &arr)//检查排序是否正确
+{
+    for(size_t i = 0; i < arr.size()-1; ++i)
+    {
+        if(arr[i] > arr[i+1])
+            return false;
+    }
+    return true;
+}
+\end{lstlisting}
+随后构建了四个不同的序列：
+
+1.SortVector构建了一个从1到N（本次取1000000）的递增有序数列。
+
+代码如下：
+
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+void SortedVector(vector<int> &arr, int N)//构造有序序列
+{
+    for(int i = 1; i <= N; ++i)
+        arr.emplace_back(i);//emplace_back函数在容器的末尾就地构造一个新元素
+}
+\end{lstlisting}
+
+2.RandomVector构建了N个伪随机数序列。
+
+代码如下：
+
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+void RandomVector(vector<int> &arr, int N)//构造随机序列
+{
+    random_device seed;//生成随机种子
+    mt19937 rnd(seed());//使用seed作为种子初始化mt19937随机数生成器
+    for(int i = 0; i <= N; ++i)
+    {
+        arr.emplace_back(rnd());
+    }
+}
+\end{lstlisting}
+
+3.ReverseVector构造了从N到1的逆序序列。
+
+代码如下：
+
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+void ReverseVector(vector<int> &arr, int N)//构造逆序序列
+{
+    for(int i=N; i >= 1; --i)
+        arr.emplace_back(i);
+}
+\end{lstlisting}
+
+4.RepeatedVector构造了有重复元素的序列并打乱：对于每个正整数i序列中共存在i个
+
+代码如下：
+
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+void RepeatedVector(vector<int> &arr, int N)//构造有重复元素的序列
+{
+    int count = 0;
+    for(int i = 1; count <= N; ++i)
+    {
+        for(int j=1; j <= i; ++j)
+        {
+            arr.emplace_back(i);
+            ++count;
+        }
+    }
+    random_device seed; //生成随机种子
+    mt19937 rnd(seed()); // 以seed作为种子生成随机数
+    shuffle(arr.begin(), arr.end(),rnd);//打乱序列
+}
+\end{lstlisting}
+testHeapSort和testSTL函数分别用来测试Heapsort和std::sort\_heap。
+
+两者都调用<chrono>库，用start记录排序开始时间，用end记录结束时间。
+
+调用check函数检查排序的正确性，如果正确输出"Correct!"。
+
+输出排序消耗的时间duration=end-start，单位为ms。
+
+每次测试结束后清空序列。
+
+
+
+\section{测试结果}
+分别用HeapSort和std::sort\_heap对长度为1000000的随机序列、有序序列、逆序序列、部分元素重复序列进行了
+测试。结果如下：
+
+
+
+\begin{table}[htbp] 
+\centering 
+\caption{测试结果} 
+\begin{tabular}{|c|c|c|} 
+\hline 
+   \   & my heapsort time & std::sort\_heap time \\ \hline 
+random sequence & 131 ms & 132 ms \\ \hline
+ordered sequence & 83 ms & 70 ms \\ \hline
+reverse sequence & 79 ms & 77 ms \\ \hline
+repetitive sequence & 114 ms & 105 ms \\\hline
+\end{tabular}
+\end{table}
+
+\section{HeapSort时间复杂度分析}
+由于堆的高度是$\log N$，因此每一次调用Heapify函数建最大堆的时间复杂度是$\mathcal{O}(log N)$。
+除了堆中最后一个元素外，每个元素都要成为一次根节点元素。
+总共需要进行N-1次DeleteMax并重建堆的操作。因此HeapSort的时间复杂度是$\mathcal{O}(N \log N)$。
+
+\section{效率差异原因分析}
+在std::sort\_heap中，其调用的pop\_heap对应HeapSort中的DeleteMax。
+
+同样将堆顶元素交换到序列末尾后，
+它并未直接进行下沉操作，而是通过std::move()函数先把堆顶空出来，把交换来的元素先放在一边。
+通过\_\_adjust7\_heap函数向上提升节点后，再把交换来的元素放在末尾。
+
+最后调用\_\_push\_heap调整堆，其实际上是一个向上的插入排序：通过子节点不断与父节点比大小实现。
+新加入的元素只会影响一条路径：叶子结点到根节点的路径，因此只要在这条路径上做插入排序就可以了。
+
+在make\_heap中，它同样从最后一个非叶子节点向上调整堆，不断调用\_\_adjust\_heap函数实现。
+
+相比HeapSort，std::sort\_heap的方式可能由于减少了比较次数而效率更高。
+\end{document}
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
