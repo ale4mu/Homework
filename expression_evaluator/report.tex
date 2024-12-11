@@ -1,0 +1,378 @@
+\documentclass[UTF8]{ctexart}
+\usepackage{geometry, CJKutf8}
+\geometry{margin=1.5cm, vmargin={0pt,1cm}}
+\setlength{\topmargin}{-1cm}
+\setlength{\paperheight}{29.7cm}
+\setlength{\textheight}{25.3cm}
+\setlength{\parindent}{0pt}
+% \documentclass{article}
+\usepackage{array} % 用于额外的列定义功能
+\usepackage[dvipsnames]{xcolor}
+% useful packages.
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{fancyhdr}
+\usepackage{layout}
+\usepackage{listings}
+\usepackage{float, caption}
+
+\lstset{
+    basicstyle=\ttfamily, basewidth=0.5em
+}
+
+% some common command
+\newcommand{\dif}{\mathrm{d}}
+\newcommand{\avg}[1]{\left\langle #1 \right\rangle}
+\newcommand{\difFrac}[2]{\frac{\dif #1}{\dif #2}}
+\newcommand{\pdfFrac}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\OFL}{\mathrm{OFL}}
+\newcommand{\UFL}{\mathrm{UFL}}
+\newcommand{\fl}{\mathrm{fl}}
+\newcommand{\op}{\odot}
+\newcommand{\Eabs}{E_{\mathrm{abs}}}
+\newcommand{\Erel}{E_{\mathrm{rel}}}
+
+\begin{document}
+
+\pagestyle{fancy}
+\fancyhead{}
+\lhead{张子乐, 3230104237}
+\chead{数据结构与算法四则混合运算器项目作业}
+\rhead{Dec.9th, 2024}
+
+\section{expression\_evaluator的设计思路}
+四则混合运算器的算法思路为：依次读取中缀表达式中的数字和运算符，分别存在数字栈和运算符栈中：
+
+1.如果输入的是数字就直接压入数字栈；
+
+2.如果输入的是左括号，就直接压入运算符栈，并定义左括号是优先级最低的。
+
+3.如果输入的是右括号，就在运算符栈中向栈底寻找左括号，直至将括号中间的所有运算符全部弹出并运算。
+
+4.如果输入的是加号或减号，就从运算符栈栈顶开始，把所有优先级大于等于加号和减号的符号弹出并运算。
+
+5.如果输入的是乘号或除号，就看运算符栈栈顶优先级是否等于乘号和除号，如果是的话则将栈顶符号弹出运算。
+\\ \\
+在代码的具体实现中，首先我创建了一个evaluator类，其中包含4个private成员：expression用于存储传入的表达式，numbers为数字栈，operators为运算符栈，
+numberstr作为临时变量存储读取的单个完整数字。
+\\ \\
+operatorvalue函数用于给传入的运算符赋值以区分优先级：左括号\<加号和减号\<乘号和除号，代码如下：
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+    double operatorvalue(const char &s)//给运算符赋值区分优先级
+    {
+        switch (s)
+        {
+            case '(':return 0;
+            case '+': case '-': return 1;
+            case '*': case '/': return 2;
+            case ')':return 3;
+            case '#':return -1;//栈底
+            default:throw std::invalid_argument("ILLEGAL! ");
+        }
+    }
+\end{lstlisting}
+
+operate函数对传入的两个数字和运算符进行运算，代码如下：
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+    double operate(double a, double b,char s) //做两个数之间的四则运算
+    {
+        switch (s)
+        {
+            case '+': return a+b;
+            case '-': return b-a;
+            case '*': return a*b;
+            case '/': 
+            {
+                if (a == 0) 
+                    throw invalid_argument("ILLEGAL! ");
+                return b/a;
+            }
+        }
+        throw invalid_argument("ILLEGAL! ");//传入的不是四则运算符，非法
+    }
+\end{lstlisting}
+
+function函数通过调用operate函数，对数字栈顶的两个数字和运算符栈栈顶的运算符进行运算，并使运算结果入栈，代码如下：
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+    void function()//执行数字栈顶部2个数字的运算操作
+    {
+        if (numbers.size() < 2) 
+            throw invalid_argument("ILLEGAL! ");
+        double a=numbers.top();//栈顶第一个数字
+        numbers.pop();
+        double b=numbers.top();//栈顶第二个数字
+        numbers.pop();
+        double result = operate(a,b,operators.top());//运算
+        numbers.push(result);//运算结果入栈
+        operators.pop();//运算符出栈
+    }
+\end{lstlisting}
+
+pushnumbers函数用于数字入栈，即将字符串中读取的连续单个数字字符组合成完整的数字并加入数字栈，代码如下：
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+    void pushnumbers() //数字入栈
+    {
+        if(!numberstr.empty())
+        {
+            double num = stod(numberstr);//stod函数把string类型转换成double
+            numbers.push(num);
+            numberstr.clear();
+        }
+    }
+\end{lstlisting}
+
+removeSpaces函数移除输入表达式中的空格，即无论多少个空格都是合法的，代码如下：
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+    void removeSpaces() //移除空格
+    {
+        expression.erase(remove_if(expression.begin(), expression.end(), ::isspace), expression.end());
+    }
+\end{lstlisting}
+
+calculate函数是四则运算混合器的主要实现函数，先调用removeSpaces函数清除所有空格，然后通过字符串流的方式遍历输入的表达式；
+按照算法思路分别对数字、左括号、加减乘除号、右括号进行出入栈，并对负数、小数和科学计数法的情况进行特判处理。表达式全部读取
+完毕之后，对栈中剩下的数字和运算符进行运算，并弹出数字栈栈顶的数字即为运算结果。
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+    double calculate()//计算结果
+    {
+        removeSpaces();//移除空格
+        std::istringstream iss(expression);
+        char ch;
+        if(expression[0] == '-')
+            numbers.push(0);
+        while(iss >> ch)
+        {   
+            if(isdigit(ch) || ch == '.')// 提取数字存放在numberstr中
+                numberstr += ch;
+            else if(ch == 'e' || ch == 'E')//科学计数法
+            {
+                numberstr += ch;
+                iss >> ch;
+                if(isdigit(ch) || (operatorvalue(ch) == 1 && isdigit(iss.peek())))//科学计数法的格式是否正确
+                    numberstr += ch;
+                else 
+                    throw invalid_argument("ILLEGAL! ");
+            }
+            else//运算符入栈
+            {   
+                pushnumbers();//数字入栈
+                if(ch == ')')//右括号的情况
+                {   
+                    while(operators.top() != '(')
+                    {
+                        function();
+                    }
+                    operators.pop();
+                }
+                else if(ch == '(')//左括号
+                {
+                    operators.push(ch);
+                }
+                else if(operatorvalue(ch) > operatorvalue(operators.top()))
+                {
+                    operators.push(ch);
+                }
+                else if (operatorvalue(ch) <= operatorvalue(operators.top()))//把优先级高的符号弹出进行运算
+                {   
+                    do{
+                        function();
+                    }while(operatorvalue(ch) <= operatorvalue(operators.top()));
+                    operators.push(ch);
+                }
+                if(iss.peek() == '-' && (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '('))//实现负数
+                {
+                    iss.ignore(1);//跳过负号
+                    numberstr += '-';
+                }
+            }
+        }
+        pushnumbers();//将表达式末尾的数字入栈
+        while(operatorvalue(operators.top()) != -1) //表达式遍历结束，进行最后的运算清空栈
+        {
+            function();
+        }
+        if(!numbers.empty()) 
+            return numbers.top();
+        else
+            throw invalid_argument("ILLEGAL! ");
+    }
+\end{lstlisting}
+
+\section{结果分析}
+1.check函数用于检测合法运算的正确性，通过assert函数实现，代码如下：                                                                                                                                                             
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+    void check(const string &arr, double assertvalue)//检查运算的正确性
+    {
+        evaluator a(arr);
+        const double EPS = 1e-9;//浮点数的精度问题
+        assert( abs( a.calculate() - assertvalue ) <= EPS);
+        std::cout << arr << "=" << assertvalue << std::endl;
+        a.empty();
+    }
+\end{lstlisting}
+\begin{itemize}
+\item check("1+(9/3-1*2)*2", 3) 检验10以内正整数的四则混合运算
+\item check("100+(9000/30-10*15)*2", 400) 检验多位正整数的四则混合运算
+\item check("2147483647",2147483647) 检验接近INT_MAX
+\item check("3.3+(12/2.5-2.3)*1.2", 6.3) 检验正小数的四则混合运算
+\item check("1.66665+5.443*2.666",16.177688) 检验多位小数,double的运算精度问题
+\item check("-1+(-9/-3--1*-2)*-2", -3) 检验负数的四则混合运算
+\item check("-12+(-45/15-1*-12)*-20", -192) 检验负数的四则混合运算
+\item check("-2147483648",-2147483648) 检验接近INT_MIN
+\item check("1--1", 2) 检验1--1是合法的
+\item check("-1+1", 0) 检验以负数开头
+\item check("2*(-1.25)+-1.2", -3.7) 检验负小数
+\item check("-12.6*3.6/(-1.2)+-12.5*-2.4", 67.8) 检验负小数
+\item check("1+(1+(1+(1+(1))))", 5) 检验多重括号
+\item check("-1+(-1+(-1+(-1+(-1))))", -5) 检验多重括号
+\item check("1e2+10", 110) 检验正数科学计数法
+\item check("1E+2+10", 110) 检验正数科学计数法
+\item check("3300e-2+1",34) 检验正数科学计数法
+\item check("1e1", 10) 检验正数科学计数法
+\item check("1E-9",1e-9) 测试接近0的数
+\item check("1e-10+0.01",0.0100000001) 仅支持有限位小数
+\item check("-1E2+100",0) 检验负数科学计数法
+\item check("-1e+2+100",0) 检验负数科学计数法
+\item check("-15e-2+0.75",0.6) 检验负数科学计数法
+\item check("-1e1", -10) 检验负数科学计数法
+\item check(" 1    +    1   ",2) 检验空格合法
+\end{itemize}
+以上测试均通过，说明该四则运算混合器能够支持正负整数、小数、科学计数法、多重括号的四则混合运算。其中类似"1+-1""1*-1""1/-1""1--1"都是合法的，空格都是合法的。
+\\\\
+2.testException函数用于测试异常类，非法输入将报错ILLEGAL，代码如下：
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+void testException(const string &arr)//测试异常类
+{
+    evaluator b(arr);
+    //处理异常
+    try 
+    {
+        b.calculate();
+    } catch (const std::exception& e) 
+    {
+        std::cerr << arr << " is " << e.what();
+    }
+}
+\end{lstlisting}
+\begin{itemize}
+\item testException("1+(1+1))") 右括号不匹配
+\item testException("2+((1+1)") 左括号不匹配
+\item testException("1+*1") 运算符连续使用
+\item testException("1-/1") 运算符连续使用
+\item testException("1*/1") 运算符连续使用
+\item testException("*1+2") 表达式以运算符开头
+\item testException("1+1/") 表达式以运算符结尾
+\item testException("1/0") 除数是0
+\item testException("1++1") 1++1是不合法的
+\item testException("1e*1") 错误的科学计数法
+\item testException("1ee1") 错误的科学计数法
+\item testException("1e+1e") 错误的科学计数法
+\end{itemize}
+以上非法输入均抛出异常ILLEGAL。其中左右括号不匹配、运算符连续使用、表达式以非负号的运算符开头、以运算符结尾、除数是0、错误的科学计数法都是非法的。
+\\\\
+3.testRandom函数用于构建20个随机表达式进行测试。
+\begin{itemize}
+\item generateRandomNumber用于生成-100到100间的随机数
+\item generateRandomOperator用于随机生成加减乘除四则运算符
+\item generateExpression用于生成随机表达式，代码如下：
+\end{itemize}
+\begin{lstlisting}[
+    language=C++,
+    basicstyle=\ttfamily,
+    breaklines=true，
+    commentstyle=\itshape\color{black!50!white}
+]
+string generateExpression() //随机生成表达式
+{   
+    static random_device seed;
+    static mt19937 rnd(seed());
+    uniform_int_distribution<> range3(1,5);//控制循环个数
+    uniform_int_distribution<> range4(1,2);//控制是否有括号
+    string expression;//表达式
+    double randomnumber;//随机数
+    int flag=0;//控制括号的临时变量
+    for(int i = range3(rnd); i >= 0; --i)
+    {
+        double randomnumber = generateRandomNumber();//生成随机数
+        char operator1 = generateRandomOperator();//生成随机运算符
+        expression += to_string(randomnumber) + " " + operator1 + " ";
+        if (range4(rnd) % 2 == 0) //随机生成括号
+        { 
+            expression += "(";
+            ++flag;//记录左括号个数
+            continue;
+        }
+        if (flag > 0)//存在左括号
+        {
+            randomnumber = generateRandomNumber();
+            expression += to_string(randomnumber);
+            expression += ")";//补上右括号
+            operator1 = generateRandomOperator();
+            expression += operator1;
+            --flag;
+        }
+    }
+    randomnumber = generateRandomNumber();
+    expression += to_string(randomnumber);//补上最后的数字
+    while(flag > 0)//补上缺少的右括号
+    {
+        expression += ")";
+        --flag;
+    }
+    return expression;
+}
+\end{lstlisting}
+
+
+\end{document}
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: t
+%%% End: 
